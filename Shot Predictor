@@ -1,0 +1,45 @@
+url = 'https://drive.google.com/uc?export=download&id=1fL7KPyxgGYfQDsuJoBWHIWwCAf-HTFpX'
+df = pd.read_csv(url, parse_dates=['game_date']).set_index('game_date')
+
+df
+mask = 'GSW'
+df['sec_left_period'] = (df['minutes_remaining']*60)+df['seconds_remaining']
+df['sec_left_game'] = ((5 - df['period'])*12 - (12 - df['minutes_remaining']))*60 +df['seconds_remaining']
+
+
+df
+target = 'shot_made_flag'
+X = df.drop(target, axis=1)
+y = df[target]
+
+mask_1 = X.index < '2017-10'
+mask_2 = X.index > '2018-09'
+X_train, y_train = X.loc[mask_1], y.loc[mask_1]
+X_test, y_test = X.loc[mask_2], y.loc[mask_2]
+new_X, new_y = X.loc[~mask_1], y.loc[~mask_1]
+mask_3 = new_X.index < '2018-09'
+X_val, y_val = new_X.loc[mask_3], new_y.loc[mask_3]
+
+baseline_acc = y_train.value_counts(normalize=True).max()
+print('Baseline Accuracy:', baseline_acc)
+
+model = make_pipeline(
+    OrdinalEncoder(),
+    SimpleImputer(),
+    RandomForestClassifier(n_estimators=200, max_depth=9)
+)
+model.fit(X_train, y_train)
+
+train_acc = accuracy_score(y_train, model.predict(X_train))
+val_acc = accuracy_score(y_val, model.predict(X_val))
+print('Training Accuracy Score:', train_acc)
+print('Validation Accuracy Score:', val_acc)
+
+test_acc = accuracy_score(y_test, model.predict(X_test))
+print('Testing Accuracy Score:', test_acc)
+
+instructor_precision = 538/(538+387)
+instructor_recall = 538/(538+259)
+
+print('Instuctor model precision', instructor_precision)
+print('Instuctor model recall', instructor_recall)
